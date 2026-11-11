@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070b12" />
+    <title>万象寺 · Cyber Temple</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="world" aria-label="万象寺三维场景"></canvas>
+      <div class="vignette"></div>
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="万象寺首页">
+          <span class="brand-mark">卍</span>
+          <span><strong>万象寺</strong><small>CYBER TEMPLE · 2077</small></span>
+        </a>
+        <div class="top-meta"><span class="live-dot"></span><span>数字禅境 · 在线</span><span class="meta-divider"></span><span id="clock">21:08:36</span></div>
+        <button class="sound-button" id="soundButton" aria-label="切换环境音" title="环境音开/关"><span class="sound-bars"><i></i><i></i><i></i><i></i></span></button>
+      </header>
+
+      <section class="intro" id="intro">
+        <div class="intro-content">
+          <div class="eyebrow"><span></span> A SANCTUARY IN THE DIGITAL AGE</div>
+          <h1>万象<span>归心</span></h1>
+          <p class="intro-copy">越过数据的尘嚣，寻一处内心的净土。<br />在霓虹与梵音之间，走进自己的世界。</p>
+          <button class="enter-button" id="enterButton" type="button"><span>进入寺院</span><b>↗</b></button>
+          <div class="enter-note"><span class="keycap">W</span><span class="keycap">A</span><span class="keycap">S</span><span class="keycap">D</span><span>自由行走</span><span class="mouse-symbol">◎</span><span>环顾四周</span></div>
+        </div>
+        <div class="intro-aside"><span class="aside-line"></span><span>心有所往<br />即是归途</span></div>
+      </section>
+
+      <section class="hud hidden" id="hud" aria-live="polite">
+        <div class="location"><span class="location-icon">⌖</span><span><small>当前位置</small><strong id="locationName">山门广场</strong></span></div>
+        <div class="crosshair"><i></i><i></i></div>
+        <div class="movement-hint" id="movementHint"><span class="mouse-symbol">◎</span> 点击场景以锁定视角</div>
+        <div class="hud-bottom"><span>W A S D <small>移动</small></span><span>SHIFT <small>奔跑</small></span><span>ESC <small>释放视角</small></span></div>
+      </section>
+
+      <aside class="side-note" id="sideNote"><span class="vertical-rule"></span><span>数字世界 · 一念清净</span></aside>
+      <footer class="footer"><span>© 2077 WANXIANG TEMPLE</span><span class="footer-center">愿此身心 · 清净无染</span><span>坐标 31°13′N 121°28′E</span></footer>
+      <div class="toast hidden" id="toast">按 <kbd>ESC</kbd> 释放视角</div>
+      <div class="load-error hidden" id="loadError">寺院场景初始化失败。请使用较新的浏览器，并确认设备已启用 WebGL。</div>
+    </main>
+    <script src="main.js"></script>
+  </body>
+</html>
