@@ -66,18 +66,31 @@ function viewMatrix(eye,yaw,pitch){const cp=Math.cos(pitch),forward=[Math.sin(ya
 function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
 const camera={x:0,y:1.68,z:23,yaw:0,pitch:-.08};
 const intro=document.querySelector('#intro'),hud=document.querySelector('#hud'),hint=document.querySelector('#movementHint'),error=document.querySelector('#loadError');
-const keys=new Set();let entered=false,dragging=false,lastX=0,lastY=0;
-const markEntered=()=>{entered=true;intro.classList.add('leaving');hud.classList.remove('hidden');document.querySelector('#sideNote').style.opacity='0';hint.textContent='W A S D 移动 · 拖动鼠标环顾';};
+let entered=false,dragging=false,dragMoved=false,lastX=0,lastY=0,downX=0,downY=0;
+let destination=null;
+const markEntered=()=>{entered=true;intro.classList.add('leaving');hud.classList.remove('hidden');document.querySelector('#sideNote').style.opacity='0';hint.textContent='点击地面前往 · 拖动环顾';};
 document.querySelector('#enterButton').addEventListener('click',markEntered);
-document.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight'].includes(e.code)){keys.add(e.code);if(entered)e.preventDefault();}});
-document.addEventListener('keyup',e=>keys.delete(e.code));
-canvas.addEventListener('pointerdown',e=>{if(!entered)return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointerup',()=>dragging=false);
-canvas.addEventListener('pointermove',e=>{if(!dragging)return;camera.yaw-=(e.clientX-lastX)*.004;camera.pitch=Math.max(-1.1,Math.min(1.1,camera.pitch-(e.clientY-lastY)*.003));lastX=e.clientX;lastY=e.clientY;});
+function groundTarget(clientX,clientY){
+  const nx=clientX/innerWidth*2-1,ny=1-clientY/innerHeight*2;
+  const aspect=canvas.width/canvas.height,tan=Math.tan(62*Math.PI/360);
+  const cp=Math.cos(camera.pitch),forward=[Math.sin(camera.yaw)*cp,Math.sin(camera.pitch),-Math.cos(camera.yaw)*cp];
+  const right=[Math.cos(camera.yaw),0,Math.sin(camera.yaw)];
+  const up=[-Math.sin(camera.yaw)*Math.sin(camera.pitch),cp,Math.cos(camera.yaw)*Math.sin(camera.pitch)];
+  const dir=forward.map((v,i)=>v+right[i]*nx*tan*aspect+up[i]*ny*tan);
+  if(dir[1]>=-.025)return null;
+  const distance=-camera.y/dir[1],x=camera.x+dir[0]*distance,z=camera.z+dir[2]*distance;
+  if(distance>150||Math.abs(x)>10||z < -29||z>34)return null;
+  if(z < -11 && Math.abs(x)<9)return null;
+  return {x,z};
+}
+canvas.addEventListener('pointerdown',e=>{if(!entered)return;dragging=true;dragMoved=false;downX=lastX=e.clientX;downY=lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerup',e=>{if(!dragging)return;dragging=false;if(!entered)return;if(!dragMoved){const point=groundTarget(e.clientX,e.clientY);if(point){destination=point;hint.textContent='正在前往目的地';}else{destination=null;hint.textContent='点击地面前往 · 拖动环顾';}}});
+canvas.addEventListener('pointercancel',()=>dragging=false);
+canvas.addEventListener('pointermove',e=>{if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragMoved=true;if(dragMoved){camera.yaw-=dx*.004;camera.pitch=Math.max(-.9,Math.min(.55,camera.pitch-dy*.003));}lastX=e.clientX;lastY=e.clientY;});
 document.querySelector('#soundButton').addEventListener('click',e=>e.currentTarget.classList.toggle('muted'));
 const clockEl=document.querySelector('#clock');setInterval(()=>clockEl.textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false}),1000);
 function resize(){const ratio=Math.min(devicePixelRatio||1,1.6);canvas.width=Math.floor(innerWidth*ratio);canvas.height=Math.floor(innerHeight*ratio);canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';gl.viewport(0,0,canvas.width,canvas.height);}
-function draw(){const dt=Math.min(.04,(performance.now()-lastTime)/1000);lastTime=performance.now();if(entered){const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown')),strafe=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));if(forward||strafe){const speed=(keys.has('ShiftLeft')||keys.has('ShiftRight'))?13:7.5,scale=speed*dt/Math.hypot(forward,strafe);camera.x+=Math.sin(camera.yaw)*forward*scale+Math.cos(camera.yaw)*strafe*scale;camera.z-=Math.cos(camera.yaw)*forward*scale-Math.sin(camera.yaw)*strafe*scale;}camera.x=Math.max(-23,Math.min(23,camera.x));camera.z=Math.max(-29,Math.min(34,camera.z));document.querySelector('#locationName').textContent=camera.z < -10?'大雄宝殿':camera.z < 5?'山门广场':'青石长阶';}gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniformMatrix4fv(projectionLocation,false,perspective(62*Math.PI/180,canvas.width/canvas.height,.1,260));gl.uniformMatrix4fv(viewLocation,false,viewMatrix([camera.x,camera.y,camera.z],camera.yaw,camera.pitch));gl.drawArrays(gl.TRIANGLES,0,vertexData.length/6);requestAnimationFrame(draw);}
+function draw(){const dt=Math.min(.04,(performance.now()-lastTime)/1000);lastTime=performance.now();if(entered&&destination){const dx=destination.x-camera.x,dz=destination.z-camera.z,distance=Math.hypot(dx,dz);if(distance<.35){destination=null;hint.textContent='点击地面前往 · 拖动环顾';}else{const step=Math.min(distance,4.2*dt);camera.x+=dx/distance*step;camera.z+=dz/distance*step;}}camera.x=Math.max(-10,Math.min(10,camera.x));camera.z=Math.max(-29,Math.min(34,camera.z));document.querySelector('#locationName').textContent=camera.z < -10?'大雄宝殿':camera.z < 5?'山门广场':'青石长阶';gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniformMatrix4fv(projectionLocation,false,perspective(62*Math.PI/180,canvas.width/canvas.height,.1,260));gl.uniformMatrix4fv(viewLocation,false,viewMatrix([camera.x,camera.y,camera.z],camera.yaw,camera.pitch));gl.drawArrays(gl.TRIANGLES,0,vertexData.length/6);requestAnimationFrame(draw);}
 let lastTime=performance.now();addEventListener('resize',resize);resize();draw();
 };
 window.startTempleScene();
